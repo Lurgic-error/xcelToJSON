@@ -12,11 +12,19 @@ const workbook = excelToJSON({
  *
  */
 
-console.log(`workbook`, Object.values(workbook).length);
+// At the moment i'm delete this because it's the only sheet different from the rest
+// should create a separate function for this sheet
+delete workbook["17.12.2020"];
+// console.log(`workbook`, workbook);
 
-const worksheets = [];
+// Worksheets
+let worksheets = [];
+
+// This will hold the final output
+let output = [];
 
 for (let sheet of Object.values(workbook)) {
+  // Leave out empty sheets
   if (sheet.length != 0) {
     worksheets.push(sheet);
   }
@@ -25,8 +33,9 @@ for (let sheet of Object.values(workbook)) {
 // console.log(`worksheets`, worksheets);
 
 worksheets.forEach((sheet) => {
-  // console.log(`sheet`, sheet);
-  organizeSheet(sheet, getDistanceFromSheet(sheet));
+  // Organize every row in every sheet so they are in a good structure...
+  let data = organizeSheet(sheet, getDistanceFromSheet(sheet));
+  output.push(...data);
 });
 
 function getDistanceFromSheet(sheet) {
@@ -65,25 +74,31 @@ function reassignKeys(tuple) {
 
 function organizeSheet(sheet, destination) {
   let data = [];
-  data = sheet.filter((row) => Object.keys(row).length == 16);
-  // console.log(`data`, data);
+  data = sheet.filter((row) => {
+    if (Object.keys(row).length == 16) {
+      return row;
+    }
+  });
+
   data = data.map((row) => {
     return Object.entries(row);
   });
-  console.log(`${destination}`, data);
+
   data = data.map((entries) => {
-    // console.log(`destination`, destination);
-    // console.log(`entries`, entries);
     let e = entries.map((cell) => {
-      // let data = [];
-      // console.log(`cell`, reassignKeys(cell));
-      // data.push(reassignKeys(cell));
-      // console.log(`data`, Object.fromEntries(data));
-      // return Object.fromEntries(data);
-      // console.log(`cell`, cell);
+      return reassignKeys(cell);
     });
-    // return Object.fromEntries(e);
-    // console.log(`e`, e);
+    e = Object.fromEntries(e);
+    e.dateOfLoading = new Date(e.dateOfLoading.split(".").reverse().join("-"));
+    e.arrivalDate = new Date(e.arrivalDate.split(".").reverse().join("-"));
+    e.dateOffloaded = new Date(e.dateOffloaded.split(".").reverse().join("-"));
+    e.vehicle = e.truck_trailerNo.split(" ").join("").split("/")[0];
+    e.trailer = e.truck_trailerNo.split(" ").join("").split("/")[1];
+    e.destination = destination;
+    return e;
   });
-  // console.log(`${destination}`, data);
+  // console.log(`data`, data);
+  return data;
 }
+
+console.log(`output`, output);
