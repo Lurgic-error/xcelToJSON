@@ -1,5 +1,6 @@
+const { writeFile } = require("fs");
 const excelToJSON = require("convert-excel-to-json");
-
+const tripCollection = require("./database");
 // Get  the workbook
 const workbook = excelToJSON({
   sourceFile: "sheets.xlsx",
@@ -34,21 +35,27 @@ for (let sheet of Object.values(workbook)) {
 
 worksheets.forEach((sheet) => {
   // Organize every row in every sheet so they are in a good structure...
-  let data = organizeSheet(sheet, getDistanceFromSheet(sheet));
+  let data = organizeSheet(sheet, getDestination(sheet));
   output.push(...data);
 });
 
-function getDistanceFromSheet(sheet) {
+// A function to get the destination from the sheet header row 2
+function getDestination(sheet) {
   let headers = sheet.filter(
-    (row) => Object.keys(row).length < 16 && Object.keys(row).length > 2 // Object.keys(row).length == 0
+    (row) => Object.keys(row).length < 16 && Object.keys(row).length > 2
   );
   let data = Object.entries(headers[0]).filter((entry) =>
     entry[1].includes("Destination:")
   );
+  // Return destination
   return data[0][1];
 }
 
 function reassignKeys(tuple) {
+  /**
+   * This function reassigns keys
+   * TODO: Tony explain it further please...
+   */
   let propKeys = {
     A: "serialNumber",
     B: "dalbitOrderNo",
@@ -73,32 +80,154 @@ function reassignKeys(tuple) {
 }
 
 function organizeSheet(sheet, destination) {
-  let data = [];
-  data = sheet.filter((row) => {
+  /***
+   * A function to organize sheet by getting the data
+   * from each row from the sheet and creating an object to represent
+   * that row with keys matching those in the sheet's column
+   */
+  let rows = [];
+  rows = sheet.filter((row) => {
     if (Object.keys(row).length == 16) {
       return row;
     }
   });
 
-  data = data.map((row) => {
-    return Object.entries(row);
+  rows = rows.map((dataRow) => {
+    return Object.entries(dataRow);
   });
 
-  data = data.map((entries) => {
-    let e = entries.map((cell) => {
+  rows = rows.map((entries) => {
+    let row = entries.map((cell) => {
       return reassignKeys(cell);
     });
-    e = Object.fromEntries(e);
-    e.dateOfLoading = new Date(e.dateOfLoading.split(".").reverse().join("-"));
-    e.arrivalDate = new Date(e.arrivalDate.split(".").reverse().join("-"));
-    e.dateOffloaded = new Date(e.dateOffloaded.split(".").reverse().join("-"));
-    e.vehicle = e.truck_trailerNo.split(" ").join("").split("/")[0];
-    e.trailer = e.truck_trailerNo.split(" ").join("").split("/")[1];
-    e.destination = destination;
-    return e;
+    row = Object.fromEntries(row);
+    row.dateOfLoading = new Date(
+      row.dateOfLoading.split(".").reverse().join("-")
+    ); // Change date of loading to a date object.
+    row.arrivalDate = new Date(row.arrivalDate.split(".").reverse().join("-")); // Change arrival date to a date object.
+    row.dateOffloaded = new Date(
+      row.dateOffloaded.split(".").reverse().join("-")
+    ); // Change date offloaded to a date object.
+    row.vehicle = row.truck_trailerNo.split(" ").join("").split("/")[0]; // Create a vehicle property
+    row.trailer = row.truck_trailerNo.split(" ").join("").split("/")[1]; // Create a trailer property
+    row.destination = destination.slice(13); // Sliced "Destination: " from destination
+    return row;
   });
-  // console.log(`data`, data);
-  return data;
+  return rows;
 }
 
-console.log(`output`, output);
+// Remove "." from some destinations
+output.map((data) => {
+  if (data.destination.indexOf(".") > 0) {
+    let word = data.destination.split("");
+    word = word.filter((letter) => {
+      if (letter != ".") {
+        return letter;
+      }
+    });
+    data.destination = word.join("");
+  }
+});
+
+let destinations = Array.from(
+  new Set([...output.map((row) => row.destination)])
+);
+
+let products = Array.from(new Set([...output.map((row) => row.product)]));
+
+let vehicles = Array.from(
+  new Set([
+    ...output.map((row) => {
+      if ((row.vehicle.length = 7)) return row.vehicle;
+    }),
+  ])
+);
+
+let trailers = Array.from(new Set([...output.map((row) => row.trailer)]));
+
+console.log(`destinations`, destinations);
+console.log(`vehicles`, vehicles);
+console.log(`trailers`, trailers);
+console.log(`trailers`, trailers.length);
+
+let totalNetEarnings = () => {
+  let total = 0;
+  output.forEach((row) => (total += row.netEarning));
+  return total;
+};
+
+let totalGrossEarnings = () => {
+  let total = 0;
+  output.forEach((row) => (total += row.grossEarning));
+  return total;
+};
+
+let totalQtyLoaded = () => {
+  let total = 0;
+  output.forEach((row) => (total += row.qtyLoaded));
+  return total;
+};
+
+let totalQtyOffloaded = () => {
+  let total = 0;
+  output.forEach((row) => (total += row.qtyOffloaded));
+  return total;
+};
+
+let totalLossValue = () => {
+  let total = 0;
+  output.forEach((row) => (total += row.lossValue));
+  return total;
+};
+
+let totalAllowedLoss = () => {
+  let total = 0;
+  output.forEach((row) => (total += row.allowedLoss));
+  return total;
+};
+
+let totalChangeableLoss = () => {
+  let total = 0;
+  output.forEach((row) => (total += row.changeableLoss));
+  return total;
+};
+
+let totalTransitLoss = () => {
+  let total = 0;
+  output.forEach((row) => (total += row.transitLoss));
+  return total;
+};
+
+console.log(`totalQtyLoaded`, totalQtyLoaded());
+
+console.log(`totalQtyOffloaded`, totalQtyOffloaded());
+
+console.log(`totalLossValue`, totalLossValue());
+
+console.log(`totalAllowedLoss`, totalAllowedLoss());
+
+console.log(`totalChangeableLoss`, totalChangeableLoss());
+
+console.log(`totalTransitLoss`, totalTransitLoss());
+
+console.log(`totalNetEarnings`, totalNetEarnings() * 2300);
+
+console.log(`totalGrossEarnings`, totalGrossEarnings() * 2300);
+// console.log(`output`, output);
+
+console.log(15 * 365 * 10);
+
+// writeFile("data.json", JSON.stringify(output), (err) => {
+//   if (err) {
+//     throw new Error(err);
+//   } else {
+//     console.log("kimepop");
+//   }
+// });
+
+// Save each row in the database
+// output.forEach(async (row) => {
+//   await tripCollection.create(row);
+// });
+
+// tripCollection.find({}).then((rows) => console.log("rows", rows));

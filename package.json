@@ -12,7 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "convert-excel-to-json": "^1.7.0"
+    "convert-excel-to-json": "^1.7.0",
+    "mongoose": "^5.12.7"
   },
   "devDependencies": {
     "nodemon": "^2.0.7"
