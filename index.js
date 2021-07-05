@@ -146,7 +146,7 @@ let vehicles = Array.from(
 let trailers = Array.from(new Set([...output.map((row) => row.trailer)]));
 
 console.log(`destinations`, destinations);
-console.log(`vehicles`, vehicles);
+console.log(`vehicles`, vehicles.length);
 console.log(`trailers`, trailers);
 console.log(`trailers`, trailers.length);
 
@@ -210,7 +210,7 @@ console.log(`totalChangeableLoss`, totalChangeableLoss());
 
 console.log(`totalTransitLoss`, totalTransitLoss());
 
-console.log(`totalNetEarnings`, totalNetEarnings() * 2300);
+console.log(`totalNetEarnings`, totalNetEarnings());
 
 console.log(`totalGrossEarnings`, totalGrossEarnings() * 2300);
 // console.log(`output`, output);
@@ -230,4 +230,4 @@ console.log(15 * 365 * 10);
 //   await tripCollection.create(row);
 // });
 
-// tripCollection.find({}).then((rows) => console.log("rows", rows));
+tripCollection.find({}).then((rows) => console.log("rows", rows));
